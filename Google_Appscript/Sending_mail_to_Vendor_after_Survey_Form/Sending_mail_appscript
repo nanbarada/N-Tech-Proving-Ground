@@ -1,0 +1,103 @@
+function sendEmailForWFHRequest() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = sheet.getDataRange().getValues();
+
+  var mainRecipient = "mhmun@gownet.com";
+  var cceizoRecipient = [
+    "donghyunk@netflix.com",
+    "jgwak@netflix.com"
+  ].join(",");
+  var ccRecipients = [
+    "Sales1-2Team@gownet.com",
+    "donghyunk@netflix.com",
+    "jgwak@netflix.com",
+    "dannytay@netflix.com",
+    "gbaker@netflix.com"
+  ].join(",");
+
+  for (var i = 116; i < data.length; i++) { // Start from row 117 (index 116)
+    var answer = data[i][20]; // U column: WFH equipment request
+    var notified = data[i][31]; // AF column: already notified check
+    Logger.log("Row: " + (i+1) + ", answer: " + answer + ", notified: " + notified);
+
+    if (answer === "Yes" && notified !== "Sent") {
+      var rowInfo = data[i];
+
+      // Set subject using E column
+      var subject = 'Equipment delivery request - ' + rowInfo[4]; // E column
+      Logger.log("Sending mail for row: " + (i+1) + ", subject: " + subject);
+      // Build the main email body with user info
+      var body = "";
+      body += "==============================\n";
+      body += "WFH Equipment Request Summary\n";
+      body += "==============================\n\n";
+      body += "■ Employee Information\n";
+      body += "--------------------------------------\n";
+      body += "Timestamp      : " + rowInfo[0] + "\n";        // A column
+      body += "Email Address  : " + rowInfo[1] + "\n";        // B column
+      body += "Legal Name     : " + rowInfo[3] + "\n";        // D column
+      body += "Phone Number   : " + rowInfo[6] + "\n";        // G column
+      body += "Address        : " + rowInfo[8] + "\n";
+      body += "\n";
+
+      // Basic items (always included)
+      var itemList = [
+        "NDX (mini PC) + keyboard & mouse",
+        "Camera",
+        "Headphone",
+        "Power strip"
+      ];
+
+      // Add optional items based on sheet values
+      if (rowInfo[9] === "Yes") { // J column: Dell U3223QE Monitor
+        itemList.push("Dell U3223QE Monitor");
+      }
+      if (rowInfo[11] === "Yes") { // L column: Wacom Tablet
+        itemList.push("Wacom Tablet");
+      }
+      // M column: LAN cable (subjective answer, add as "LAN cable: [answer]" if not empty)
+      if (rowInfo[12] && rowInfo[12].toString().trim() !== "") {
+        itemList.push("LAN cable: " + rowInfo[12]);
+      }
+      if (rowInfo[26] === "Yes I need an Eizo") { // AA column: EIZO Monitor
+        itemList.push("EIZO Monitor");
+        // Send a separate alert email for EIZO monitor request
+        MailApp.sendEmail({
+          to: cceizoRecipient,
+          subject: "EIZO 모니터 배송 확인 경고", // "EIZO Monitor Delivery Alert" in Korean
+          body:
+            "==============================\n" +
+            "EIZO Monitor Delivery Alert\n" +
+            "==============================\n\n" +
+            "An employee has requested an EIZO monitor for delivery.\n\n" +
+            "■ Employee Information\n" +
+            "--------------------------------------\n" +
+            "Timestamp      : " + rowInfo[0] + "\n" +
+            "Email Address  : " + rowInfo[1] + "\n" +
+            "Legal Name     : " + rowInfo[3] + "\n" +
+            "Phone Number   : " + rowInfo[6] + "\n" +
+            "Address        : " + rowInfo[8] + "\n"
+        });
+      }
+
+      // Format item list as neat bullet points
+      body += "■ Requested Items\n";
+      body += "--------------------------------------\n";
+      for (var j = 0; j < itemList.length; j++) {
+        body += "• " + itemList[j] + "\n";
+      }
+      body += "--------------------------------------\n";
+
+      // Send main notification email with item list and user info
+      MailApp.sendEmail({
+        to: mainRecipient,
+        cc: ccRecipients,
+        subject: subject,
+        body: body
+      });
+
+      // Mark as "Sent" in AF column (column 32) to prevent duplicate notifications
+      sheet.getRange(i+1, 32).setValue("Sent");
+    }
+  }
+}
