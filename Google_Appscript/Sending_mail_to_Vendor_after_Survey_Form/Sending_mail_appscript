@@ -2,7 +2,7 @@ function sendEmailForWFHRequest() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
 
-  var mainRecipient = "mhmun@gownet.com";
+  var mainRecipient = "vendor@vendor.com";
   var cceizoRecipient = [
     "donghyunk@netflix.com",
     "jgwak@netflix.com"
